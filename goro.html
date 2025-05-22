@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CosmoTarot - Ваш личный астролог</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0A0A1A;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .title-font {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+            opacity: 0;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; }
+            50% { opacity: var(--opacity); }
+        }
+        
+        .video-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(107, 45, 152, 0.5);
+        }
+        
+        .video-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(107, 45, 152, 0.3) 0%, rgba(249, 199, 79, 0.2) 100%);
+            z-index: 1;
+            border-radius: 12px;
+        }
+        
+        .zodiac-sign {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .zodiac-sign:hover {
+            transform: translateY(-5px) scale(1.05);
+            filter: drop-shadow(0 0 10px rgba(249, 199, 79, 0.7));
+        }
+        
+        .prediction-card {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .urgent-btn {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(249, 199, 79, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(249, 199, 79, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(249, 199, 79, 0); }
+        }
+        
+        .tarot-card {
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        
+        .tarot-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        
+        .tarot-card:hover .tarot-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .tarot-front, .tarot-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tarot-back {
+            transform: rotateY(180deg);
+            background: linear-gradient(135deg, #6B2D98 0%, #3A1068 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #F9C74F;
+        }
+        
+        .form-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(107, 45, 152, 0.5);
+            transition: all 0.3s;
+            color: white;
+        }
+        
+        .form-input:focus {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: #6B2D98;
+            box-shadow: 0 0 0 3px rgba(107, 45, 152, 0.3);
+        }
+        
+        /* Fix for modal text color */
+        .modal-content {
+            color: white;
+        }
+        
+        .modal-content label {
+            color: #E5E7EB;
+        }
+        
+        .modal-content select,
+        .modal-content textarea {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Better zodiac icons */
+        .zodiac-icon {
+            font-size: 2.5rem;
+            color: #F9C74F;
+        }
+    </style>
+</head>
+<body>
+    <!-- Звёздный фон -->
+    <div id="stars-container" class="fixed top-0 left-0 w-full h-full pointer-events-none z-0"></div>
+    
+    <!-- Шапка -->
+    <header class="relative z-10">
+        <div class="container mx-auto px-6 py-8">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-purple-900 flex items-center justify-center mr-4">
+                        <i class="fas fa-moon text-yellow-400 text-xl"></i>
+                    </div>
+                    <h1 class="title-font text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-yellow-400">
+                        CosmoTarot
+                    </h1>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#about" class="text-white hover:text-yellow-400 transition">Обо мне</a>
+                    <a href="#zodiac" class="text-white hover:text-yellow-400 transition">Гороскоп</a>
+                    <a href="#services" class="text-white hover:text-yellow-400 transition">Услуги</a>
+                    <a href="#reviews" class="text-white hover:text-yellow-400 transition">Отзывы</a>
+                    <a href="#contact" class="text-white hover:text-yellow-400 transition">Контакты</a>
+                </nav>
+                <button class="md:hidden text-white">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Герой-секция -->
+    <section class="relative z-10 py-20">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-12 md:mb-0">
+                <h2 class="title-font text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                    Раскройте <span class="text-yellow-400">тайны</span> вашей судьбы
+                </h2>
+                <p class="text-lg text-gray-300 mb-8 max-w-lg">
+                    Профессиональные астрологические прогнозы и таро-гадания, которые помогут вам принять верные решения и понять своё предназначение.
+                </p>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button class="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105">
+                        Записаться на консультацию
+                    </button>
+                    <button id="urgentBtn" class="urgent-btn bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-purple-900 font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105 flex items-center">
+                        <i class="fas fa-bolt mr-2"></i> Срочный вопрос
+                    </button>
+                </div>
+            </div>
+            <div class="md:w-1/2">
+                <div class="video-container relative">
+                    <div class="aspect-w-16 aspect-h-9">
+                        <video class="w-full rounded-lg" autoplay muted loop>
+                            <source src="https://assets.mixkit.co/videos/preview/mixkit-woman-meditating-in-a-mystical-environment-39818-large.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center z-10">
+                        <div class="w-20 h-20 rounded-full bg-purple-800 bg-opacity-70 flex items-center justify-center cursor-pointer hover:bg-opacity-90 transition">
+                            <i class="fas fa-play text-yellow-400 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Обо мне -->
+    <section id="about" class="relative z-10 py-20 bg-gradient-to-b from-purple-900/20 to-transparent">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/3 mb-12 md:mb-0 flex justify-center">
+                    <div class="relative">
+                        <div class="w-64 h-64 rounded-full overflow-hidden border-4 border-yellow-400 shadow-lg">
+                            <img src="https://images.unsplash.com/photo-1590086783191-a0694c7d1e6e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" 
+                                 alt="Астролог CosmoTarot" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                        <div class="absolute -bottom-5 -right-5 bg-purple-800 p-4 rounded-full shadow-xl">
+                            <i class="fas fa-star text-yellow-400 text-3xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:w-2/3 md:pl-16">
+                    <h2 class="title-font text-3xl md:text-4xl font-bold mb-6">
+                        Приветствую вас, я <span class="text-yellow-400">Алекс</span> - ваш проводник в мир астрологии
+                    </h2>
+                    <p class="text-gray-300 mb-6">
+                        Более 15 лет я помогаю людям находить ответы на самые сокровенные вопросы через астрологию и карты Таро. Мои прогнозы помогли сотням клиентов обрести гармонию, найти любовь и добиться успеха в бизнесе.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="flex items-start">
+                            <div class="bg-purple-800 p-3 rounded-full mr-4">
+                                <i class="fas fa-gem text-yellow-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-2">Образование</h4>
+                                <p class="text-gray-300">
+                                    Выпускница Московской Академии Астрологии, сертифицированный таролог
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-purple-800 p-3 rounded-full mr-4">
+                                <i class="fas fa-clock text-yellow-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-2">Опыт</h4>
+                                <p class="text-gray-300">
+                                    Более 15 лет практики, 5000+ успешных консультаций
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="border-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-purple-900 font-bold py-2 px-6 rounded-full transition duration-300">
+                        Узнать больше
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Интерактивный гороскоп -->
+    <section id="zodiac" class="relative z-10 py-20">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="title-font text-3xl md:text-4xl font-bold mb-4">
+                    Ваш <span class="text-yellow-400">персональный</span> гороскоп
+                </h2>
+                <p class="text-gray-300 max-w-2xl mx-auto">
+                    Нажмите на ваш знак зодиака, чтобы получить бесплатное предсказание на сегодня
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6 mb-16">
+                <!-- Овен -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'aries')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-ram zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Овен</h3>
+                        <p class="text-gray-300 text-sm">21 марта - 19 апреля</p>
+                    </div>
+                </div>
+                
+                <!-- Телец -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'taurus')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-bull zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Телец</h3>
+                        <p class="text-gray-300 text-sm">20 апреля - 20 мая</p>
+                    </div>
+                </div>
+                
+                <!-- Близнецы -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'gemini')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-people-arrows zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Близнецы</h3>
+                        <p class="text-gray-300 text-sm">21 мая - 20 июня</p>
+                    </div>
+                </div>
+                
+                <!-- Рак -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'cancer')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-crab zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Рак</h3>
+                        <p class="text-gray-300 text-sm">21 июня - 22 июля</p>
+                    </div>
+                </div>
+                
+                <!-- Лев -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'leo')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-crown zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Лев</h3>
+                        <p class="text-gray-300 text-sm">23 июля - 22 августа</p>
+                    </div>
+                </div>
+                
+                <!-- Дева -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'virgo')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-wheat-awn zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Дева</h3>
+                        <p class="text-gray-300 text-sm">23 августа - 22 сентября</p>
+                    </div>
+                </div>
+                
+                <!-- Весы -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'libra')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-scale-balanced zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Весы</h3>
+                        <p class="text-gray-300 text-sm">23 сентября - 22 октября</p>
+                    </div>
+                </div>
+                
+                <!-- Скорпион -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'scorpio')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-scorpion zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Скорпион</h3>
+                        <p class="text-gray-300 text-sm">23 октября - 21 ноября</p>
+                    </div>
+                </div>
+                
+                <!-- Стрелец -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'sagittarius')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-bow-arrow zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Стрелец</h3>
+                        <p class="text-gray-300 text-sm">22 ноября - 21 декабря</p>
+                    </div>
+                </div>
+                
+                <!-- Козерог -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'capricorn')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-mountain zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Козерог</h3>
+                        <p class="text-gray-300 text-sm">22 декабря - 19 января</p>
+                    </div>
+                </div>
+                
+                <!-- Водолей -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'aquarius')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-water zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Водолей</h3>
+                        <p class="text-gray-300 text-sm">20 января - 18 февраля</p>
+                    </div>
+                </div>
+                
+                <!-- Рыбы -->
+                <div class="zodiac-sign" onclick="showPrediction(event, 'pisces')">
+                    <div class="bg-purple-900 bg-opacity-50 rounded-xl p-6 text-center transition-all hover:bg-opacity-70">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-purple-800 rounded-full flex items-center justify-center">
+                            <i class="fas fa-fish zodiac-icon"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Рыбы</h3>
+                        <p class="text-gray-300 text-sm">19 февраля - 20 марта</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Карточка предсказания -->
+            <div id="predictionCard" class="prediction-card max-w-3xl mx-auto bg-gradient-to-br from-purple-900 to-purple-800 rounded-xl p-8 shadow-xl border border-yellow-400 border-opacity-30">
+                <div class="flex justify-between items-start mb-6">
+                    <h3 id="predictionSign" class="title-font text-2xl font-bold text-yellow-400"></h3>
+                    <button onclick="hidePrediction()" class="text-gray-300 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="flex flex-col md:flex-row">
+                    <div class="md:w-1/3 mb-6 md:mb-0 md:pr-6">
+                        <div class="bg-purple-950 bg-opacity-50 rounded-lg p-4 h-full">
+                            <h4 class="font-bold mb-3">Общий прогноз</h4>
+                            <p id="generalPrediction" class="text-gray-200 text-sm"></p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/3 mb-6 md:mb-0 md:px-3">
+                        <div class="bg-purple-950 bg-opacity-50 rounded-lg p-4 h-full">
+                            <h4 class="font-bold mb-3">Любовь</h4>
+                            <p id="lovePrediction" class="text-gray-200 text-sm"></p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/3 md:pl-6">
+                        <div class="bg-purple-950 bg-opacity-50 rounded-lg p-4 h-full">
+                            <h4 class="font-bold mb-3">Финансы</h4>
+                            <p id="financePrediction" class="text-gray-200 text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 text-center">
+                    <button class="bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-2 px-6 rounded-full transition duration-300">
+                        Получить полный гороскоп
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Услуги -->
+    <section id="services" class="relative z-10 py-20 bg-gradient-to-b from-purple-900/20 to-transparent">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="title-font text-3xl md:text-4xl font-bold mb-4">
+                    Мои <span class="text-yellow-400">услуги</span>
+                </h2>
+                <p class="text-gray-300 max-w-2xl mx-auto">
+                    Индивидуальные консультации, которые помогут вам в разных сферах жизни
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                <!-- Услуга 1 -->
+                <div class="bg-purple-900 bg-opacity-50 rounded-xl p-8 transition-all hover:bg-opacity-70 hover:-translate-y-2">
+                    <div class="w-16 h-16 mb-6 bg-purple-800 rounded-full flex items-center justify-center mx-auto">
+                        <i class="fas fa-heart text-yellow-400 text-2xl"></i>
+                    </div>
+                    <h3 class="title-font text-xl font-bold text-center mb-4">Любовный гороскоп</h3>
+                    <p class="text-gray-300 text-center mb-6">
+                        Анализ совместимости, прогноз отношений, поиск идеального партнёра
+                    </p>
+                    <div class="text-center">
+                        <span class="text-yellow-400 font-bold text-xl">3 500 ₽</span>
+                        <button class="block w-full mt-4 bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-2 px-4 rounded-full transition duration-300">
+                            Заказать
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Услуга 2 -->
+                <div class="bg-purple-900 bg-opacity-50 rounded-xl p-8 transition-all hover:bg-opacity-70 hover:-translate-y-2 border border-yellow-400 border-opacity-30">
+                    <div class="w-16 h-16 mb-6 bg-purple-800 rounded-full flex items-center justify-center mx-auto">
+                        <i class="fas fa-briefcase text-yellow-400 text-2xl"></i>
+                    </div>
+                    <h3 class="title-font text-xl font-bold text-center mb-4">Карьерный прогноз</h3>
+                    <p class="text-gray-300 text-center mb-6">
+                        Определение идеальной профессии, сроки карьерного роста, смена деятельности
+                    </p>
+                    <div class="text-center">
+                        <span class="text-yellow-400 font-bold text-xl">4 200 ₽</span>
+                        <button class="block w-full mt-4 bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-2 px-4 rounded-full transition duration-300">
+                            Заказать
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Услуга 3 -->
+                <div class="bg-purple-900 bg-opacity-50 rounded-xl p-8 transition-all hover:bg-opacity-70 hover:-translate-y-2">
+                    <div class="w-16 h-16 mb-6 bg-purple-800 rounded-full flex items-center justify-center mx-auto">
+                        <i class="fas fa-star text-yellow-400 text-2xl"></i>
+                    </div>
+                    <h3 class="title-font text-xl font-bold text-center mb-4">Полный натальный анализ</h3>
+                    <p class="text-gray-300 text-center mb-6">
+                        Подробный разбор вашей карты рождения с прогнозом на год
+                    </p>
+                    <div class="text-center">
+                        <span class="text-yellow-400 font-bold text-xl">6 900 ₽</span>
+                        <button class="block w-full mt-4 bg-yellow-400 hover:bg-yellow-500 text-purple-900 font-bold py-2 px-4 rounded-full transition duration-300">
+                            Заказать
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Карты Таро -->
+            <div class="text-center mt-24">
+                <h3 class="title-font text-2xl md:text-3xl font-bold mb-6">
+                    Гадание на <span class="text-yellow-400">картах Таро</span>
+                </h3>
+                <p class="text-gray-300 max-w-2xl mx-auto mb-12">
+                    Выберите карту, чтобы узнать её значение в вашей жизни
+                </p>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-12">
+                    <!-- Карта 1 -->
+                    <div class="tarot-card">
+                        <div class="tarot-inner">
+                            <div class="tarot-front">
+                                <img src="https://www.tarotcardmeanings.net/images/tarotcards/rider-waite/magician.jpg" 
+                                     alt="Маг" 
+                                     class="w-full h-full object-cover rounded-lg">
+                            </div>
+                            <div class="tarot-back">
+                                <i class="fas fa-question text-4xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Карта 2 -->
+                    <div class="tarot-card">
+                        <div class="tarot-inner">
+                            <div class="tarot-front">
+                                <img src="https://www.tarotcardmeanings.net/images/tarotcards/rider-waite/highpriestess.jpg" 
+                                     alt="Верховная Жрица" 
+                                     class="w-full h-full object-cover rounded-lg">
+                            </div>
+                            <div class="tarot-back">
+                                <i class="fas fa-question text-4xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Карта 3 -->
+                    <div class="tarot-card">
+                        <div class="tarot-inner">
+                            <div class="tarot-front">
+                                <img src="https://www.tarotcardmeanings.net/images/tarotcards/rider-waite/empress.jpg" 
+                                     alt="Императрица" 
+                                     class="w-full h-full object-cover rounded-lg">
+                            </div>
+                            <div class="tarot-back">
+                                <i class="fas fa-question text-4xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Карта 4 -->
+                    <div class="tarot-card">
+                        <div class="tarot-inner">
+                            <div class="tarot-front">
+                                <img src="https://www.tarotcardmeanings.net/images/tarotcards/rider-waite/emperor.jpg" 
+                                     alt="Император" 
+                                     class="w-full h-full object-cover rounded-lg">
+                            </div>
+                            <div class="tarot-back">
+                                <i class="fas fa-question text-4xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Карта 5 -->
+                    <div class="tarot-card">
+                        <div class="tarot-inner">
+                            <div class="tarot-front">
+                                <img src="https://www.tarotcardmeanings.net/images/tarotcards/rider-waite/hierophant.jpg" 
+                                     alt="Иерофант" 
+                                     class="w-full h-full object-cover rounded-lg">
+                            </div>
+                            <div class="tarot-back">
+                                <i class="fas fa-question text-4xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Карта 6 -->
+                    <div class="tarot-card">
+                        <div class="tarot-inner">
+                            <div class="tarot-front">
+                                <img src="https://www.tarotcardmeanings.net/images/tarotcards/rider-waite/lovers.jpg" 
+                                     alt="Влюблённые" 
+                                     class="w-full h-full object-cover rounded-lg">
+                            </div>
+                            <div class="tarot-back">
+                                <i class="fas fa-question text-4xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="border-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-purple-900 font-bold py-2 px-6 rounded-full transition duration-300">
+                    Полное гадание на Таро
+                </button>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Отзывы -->
+    <section id="reviews" class="relative z-10 py-20">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="title-font text-3xl md:text-4xl font-bold mb-4">
+                    Отзывы <span class="text-yellow-400">клиентов</span>
+                </h2>
+                <p class="text-gray-300 max-w-2xl mx-auto">
+                    Вот что говорят люди, которые уже воспользовались моими услугами
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                <!-- Отзыв 1 -->
+                <div class="bg-purple-900 bg-opacity-50 rounded-xl p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full overflow-hidden mr-4">
+                            <img src="https://randomuser.me/api/portraits/women/43.jpg" 
+                                 alt="Екатерина" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Екатерина</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 italic">
+                        "Консультация с Алисой изменила мою жизнь! Благодаря её прогнозу я встретила своего будущего мужа именно в тот период, который она указала. Её предсказания удивительно точны!"
+                    </p>
+                </div>
+                
+                <!-- Отзыв 2 -->
+                <div class="bg-purple-900 bg-opacity-50 rounded-xl p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full overflow-hidden mr-4">
+                            <img src="https://randomuser.me/api/portraits/men/32.jpg" 
+                                 alt="Дмитрий" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Дмитрий</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 italic">
+                        "Карьерный гороскоп помог мне принять решение о смене работы в идеальный момент. Новое место оказалось именно таким, как описывал Алекс - с возможностями роста и высокой зарплатой. Рекомендую!"
+                    </p>
+                </div>
+                
+                <!-- Отзыв 3 -->
+                <div class="bg-purple-900 bg-opacity-50 rounded-xl p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full overflow-hidden mr-4">
+                            <img src="https://randomuser.me/api/portraits/women/65.jpg" 
+                                 alt="Ольга" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Ольга</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-300 italic">
+                        "Натальная карта, составленная Алисой, открыла мне глаза на многие аспекты моей личности. Теперь я понимаю, почему действую именно так в определённых ситуациях. Очень глубокая и полезная консультация."
+                    </p>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button class="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105">
+                    Оставить отзыв
+                </button>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Контакты -->
+    <section id="contact" class="relative z-10 py-20 bg-gradient-to-b from-purple-900/20 to-transparent">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row">
+                <div class="md:w-1/2 mb-12 md:mb-0 md:pr-12">
+                    <h2 class="title-font text-3xl md:text-4xl font-bold mb-6">
+                        Свяжитесь <span class="text-yellow-400">со мной</span>
+                    </h2>
+                    <p class="text-gray-300 mb-8">
+                        Заполните форму, и я свяжусь с вас в течение 24 часов для уточнения деталей консультации
+                    </p>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-start">
+                            <div class="bg-purple-800 p-3 rounded-full mr-4">
+                                <i class="fas fa-envelope text-yellow-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1">Email</h4>
+                                <p class="text-gray-300">cosmotarot@astrology.ru</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="bg-purple-800 p-3 rounded-full mr-4">
+                                <i class="fas fa-phone-alt text-yellow-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1">Телефон</h4>
+                                <p class="text-gray-300">+7 (999) 123-45-67</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="bg-purple-800 p-3 rounded-full mr-4">
+                                <i class="fas fa-map-marker-alt text-yellow-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1">Адрес</h4>
+                                <p class="text-gray-300">Москва, ул. Астрологическая, 12</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 flex space-x-4">
+                        <a href="#" class="w-12 h-12 rounded-full bg-purple-800 hover:bg-purple-700 flex items-center justify-center transition">
+                            <i class="fab fa-telegram text-yellow-400 text-xl"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 rounded-full bg-purple-800 hover:bg-purple-700 flex items-center justify-center transition">
+                            <i class="fab fa-whatsapp text-yellow-400 text-xl"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 rounded-full bg-purple-800 hover:bg-purple-700 flex items-center justify-center transition">
+                            <i class="fab fa-instagram text-yellow-400 text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="md:w-1/2">
+                    <form class="bg-purple-900 bg-opacity-50 rounded-xl p-8">
+                        <div class="mb-6">
+                            <label for="name" class="block text-gray-300 mb-2">Ваше имя</label>
+                            <input type="text" id="name" class="form-input w-full px-4 py-3 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="email", class="block text-gray-300 mb-2">Email</label>
+                            <input type="email" id="email" class="form-input w-full px-4 py-3 rounded-lg focus:outline-none">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="service" class="block text-gray-300 mb-2">Услуга</label>
+                            <select id="service" class="form-input w-full px-4 py-3 rounded-lg focus:outline-none">
+                                <option value="">Выберите услугу</option>
+                                <option value="love">Любовный гороскоп</option>
+                                <option value="career">Карьерный прогноз</option>
+                                <option value="natal">Натальный анализ</option>
+                                <option value="tarot">Гадание на Таро</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="message" class="block text-gray-300 mb-2">Ваше сообщение</label>
+                            <textarea id="message" rows="4" class="form-input w-full px-4 py-3 rounded-lg focus:outline-none"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-purple-900 font-bold py-3 px-6 rounded-full transition duration-300">
+                            Отправить запрос
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Футер -->
+    <footer class="relative z-10 py-12 bg-purple-900 bg-opacity-80">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-purple-800 flex items-center justify-center mr-3">
+                            <i class="fas fa-moon text-yellow-400"></i>
+                        </div>
+                        <h2 class="title-font text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-yellow-400">
+                            CosmoTarot
+                        </h2>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-center md:items-end">
+                    <p class="text-gray-300 mb-4 text-center md:text-right">
+                        © 2023 CosmoTarot. Все права защищены.
+                    </p>
+                    <div class="flex space-x-6">
+                        <a href="#" class="text-gray-300 hover:text-yellow-400 transition">Политика конфиденциальности</a>
+                        <a href="#" class="text-gray-300 hover:text-yellow-400 transition">Условия использования</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Модальное окно для срочного вопроса -->
+    <div id="urgentModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="bg-gradient-to-b from-purple-900 to-purple-800 rounded-xl p-8 max-w-md w-full mx-4 relative border border-yellow-400 border-opacity-30 modal-content">
+            <button onclick="hideUrgentModal()" class="absolute top-4 right-4 text-gray-300 hover:text-white">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <h3 class="title-font text-2xl font-bold text-yellow-400 mb-6 text-center">
+                Срочный вопрос к астрологу
+            </h3>
+            
+            <form>
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2">Ваш знак зодиака</label>
+                    <select class="w-full px-4 py-2 rounded-lg focus:outline-none form-input">
+                        <option value="">Выберите знак</option>
+                        <option value="aries">Овен</option>
+                        <option value="taurus">Телец</option>
+                        <option value="gemini">Близнецы</option>
+                        <option value="cancer">Рак</option>
+                        <option value="leo">Лев</option>
+                        <option value="virgo">Дева</option>
+                        <option value="libra">Весы</option>
+                        <option value="scorpio">Скорпион</option>
+                        <option value="sagittarius">Стрелец</option>
+                        <option value="capricorn">Козерог</option>
+                        <option value="aquarius">Водолей</option>
+                        <option value="pisces">Рыбы</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-300 mb-2">Ваш вопрос</label>
+                    <textarea rows="3" class="w-full px-4 py-2 rounded-lg focus:outline-none form-input"></textarea>
+                </div>
+                
+                <button type="submit" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-purple-900 font-bold py-3 px-6 rounded-full transition duration-300">
+                    Отправить вопрос
+                </button>
+            </form>
+            
+            <p class="text-gray-300 text-sm mt-4 text-center">
+                Я отвечу вам в течение 2 часов с момента получения вопроса
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Создание звёздного фона
+        function createStars() {
+            const container = document.getElementById('stars-container');
+            const starsCount = 150;
+            
+            for (let i = 0; i < starsCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // Случайные параметры для звезды
+                const size = Math.random() * 3;
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                const opacity = Math.random() * 0.8 + 0.2;
+                const duration = Math.random() * 5 + 3;
+                
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.left = `${posX}%`;
+                star.style.top = `${posY}%`;
+                star.style.setProperty('--opacity', opacity);
+                star.style.setProperty('--duration', `${duration}s`);
+                
+                // Задержка анимации для мерцания
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                
+                container.appendChild(star);
+            }
+        }
+        
+        // Предсказания для знаков зодиака
+        const predictions = {
+            aries: {
+                sign: "Овен",
+                general: "Сегодня звёзды благоволят вам! Это идеальный день для новых начинаний и смелых решений. Ваша энергия на пике, используйте её с умом.",
+                love: "В любовной сфере возможны неожиданные встречи. Одинокие Овны могут встретить интересного человека, а те, кто в отношениях, получат порцию страсти.",
+                finance: "Финансовая ситуация стабильна, но не стоит рисковать крупными суммами. Лучше отложить важные денежные решения на следующую неделю."
+            },
+            taurus: {
+                sign: "Телец",
+                general: "День требует терпения и спокойствия. Не торопите события, всё идёт своим чередом. Уделите внимание здоровью и отдыху.",
+                love: "В отношениях возможны небольшие недопонимания. Проявите дипломатичность и не настаивайте на своём. Одиноким Тельцам лучше не торопиться с новыми знакомствами.",
+                finance: "Хороший день для финансового планирования. Возможны небольшие, но приятные поступления денег. Рассмотрите варианты долгосрочных вложений."
+            },
+            gemini: {
+                sign: "Близнецы",
+                general: "День коммуникации и новых знакомств. Ваша обаятельность на высоте, используйте это для продвижения своих идей. Возможны интересные предложения.",
+                love: "Романтическая атмосфера благоприятствует Близнецам. Одиноким стоит быть более открытыми, а парам - устроить необычное свидание.",
+                finance: "Финансовые вопросы требуют внимания. Возможны незапланированные траты, но и неожиданные источники дохода."
+            },
+            cancer: {
+                sign: "Рак",
+                general: "Эмоциональный день, когда важна поддержка близких. Не замыкайтесь в себе, делитесь переживаниями. Интуиция особенно сильна - доверяйте ей.",
+                love: "В любви возможны глубокие переживания и откровенные разговоры. Это хорошее время для укрепления отношений. Одиноким Ракам стоит присмотреться к старым знакомым.",
+                finance: "Стабильность в финансовой сфере. Лучше не делать крупных покупок сегодня - велика вероятность импульсивных решений."
+            },
+            leo: {
+                sign: "Лев",
+                general: "День, когда вы в центре внимания! Ваша харизма притягивает людей и возможности. Не стесняйтесь проявлять инициативу, звёзды на вашей стороне.",
+                love: "Романтический день для Львов. Возможны признания в чувствах или приятные сюрпризы. Одиноким Львам стоит проявить активность в поиске партнёра.",
+                finance: "Хорошее время для решения финансовых вопросов. Возможны неожиданные денежные поступления или выгодные предложения."
+            },
+            virgo: {
+                sign: "Дева",
+                general: "Практичный день, идеальный для решения накопившихся дел. Ваша организованность и внимание к деталям помогут добиться успеха в любом начинании.",
+                love: "В любовной сфере возможны небольшие разногласия из-за мелочей. Проявите терпение и понимание. Одиноким Девам лучше сосредоточиться на себе.",
+                finance: "Отличный день для финансового анализа и планирования. Возможны выгодные покупки, но только после тщательного изучения."
+            },
+            libra: {
+                sign: "Весы",
+                general: "День гармонии и баланса. Вы особенно остро чувствуете справедливость и красоту. Уделите время творчеству и общению с приятными людьми.",
+                love: "Романтический период для Весов. Возможны новые знакомства или углубление существующих отношений. Ваше обаяние на высоте!",
+                finance: "Финансовая ситуация стабильна, но возможны незапланированные траты на приятные мелочи. Контролируйте бюджет."
+            },
+            scorpio: {
+                sign: "Скорпион",
+                general: "День трансформации и глубинных изменений. Вы чувствуете, что пришло время что-то менять в жизни. Доверьтесь интуиции, но не действуйте импульсивно.",
+                love: "В любовной сфере возможны страстные моменты и откровенные разговоры. Одиноким Скорпионам стоит быть осторожными с новыми знакомствами.",
+                finance: "Сложный день для финансовых решений. Лучше отложить крупные покупки и инвестиции. Возможны скрытые выгоды."
+            },
+            sagittarius: {
+                sign: "Стрелец",
+                general: "День приключений и новых впечатлений! Ваша энергия и оптимизм помогут преодолеть любые препятствия. Открывайтесь новым возможностям.",
+                love: "В любви возможны неожиданные повороты. Одиноким Стрельцам стоит быть открытыми к новым знакомствам. Парам - устроить совместное приключение.",
+                finance: "Финансовая удача на вашей стороне. Возможны неожиданные дененые поступления или выгодные предложения."
+            },
+            capricorn: {
+                sign: "Козерог",
+                general: "Практичный день, идеальный для работы и достижения целей. Ваша дисциплина и упорство помогут продвинуться в важных вопросах.",
+                love: "В любовной сфере возможна некоторая холодность. Проявите больше эмоций и тепла. Одиноким Козерогам лучше сосредоточиться на карьере.",
+                finance: "Отличный день для финансового планирования и долгосрочных вложений. Ваша практичность поможет принять верные решения."
+            },
+            aquarius: {
+                sign: "Водолей",
+                general: "День оригинальных идей и нестандартных решений. Ваша креативность на высоте - используйте это для реализации смелых проектов.",
+                love: "В любви возможны неожиданные повороты. Одиноким Водолеям стоит быть открытыми к необычным знакомствам. Парам - внести разнообразие в отношения.",
+                finance: "Финансовая ситуация нестабильна, но возможны неожиданные источники дохода. Лучше не рисковать крупными суммами."
+            },
+            pisces: {
+                sign: "Рыбы",
+                general: "Чувствительный день, когда важна интуиция и творчество. Уделите время искусству, музыке или духовным практикам. Избегайте конфликтов.",
+                love: "Романтический период для Рыб. Возможны глубокие эмоциональные переживания и встречи с родственными душами. Парам - время для душевных разговоров.",
+                finance: "Финансовая ситуация требует осторожности. Возможны незапланированные траты. Лучше отложить важные денежные решения."
+            }
+        };
+        
+        // Показать предсказание
+        function showPrediction(event, sign) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const prediction = predictions[sign];
+            document.getElementById('predictionSign').textContent = prediction.sign;
+            document.getElementById('generalPrediction').textContent = prediction.general;
+            document.getElementById('lovePrediction').textContent = prediction.love;
+            document.getElementById('financePrediction').textContent = prediction.finance;
+            
+            document.getElementById('predictionCard').style.display = 'block';
+            
+            // Прокрутка к карточке предсказания
+            const predictionCard = document.getElementById('predictionCard');
+            const cardPosition = predictionCard.getBoundingClientRect().top + window.pageYOffset - 100;
+            
+            window.scrollTo({
+                top: cardPosition,
+                behavior: 'smooth'
+            });
+        }
+        
+        // Скрыть предсказание
+        function hidePrediction() {
+            document.getElementById('predictionCard').style.display = 'none';
+        }
+        
+        // Показать модальное окно срочного вопроса
+        function showUrgentModal() {
+            document.getElementById('urgentModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Блокируем скролл страницы
+        }
+        
+        // Скрыть модальное окно срочного вопроса
+        function hideUrgentModal() {
+            document.getElementById('urgentModal').classList.add('hidden');
+            document.body.style.overflow = ''; // Восстанавливаем скролл страницы
+        }
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            
+            // Обработчик для кнопки срочного вопроса
+            document.getElementById('urgentBtn').addEventListener('click', showUrgentModal);
+            
+            // Обработчики для карт Таро
+            const tarotCards = document.querySelectorAll('.tarot-card');
+            tarotCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    this.querySelector('.tarot-inner').style.transform = 'rotateY(180deg)';
+                });
+            });
+            
+            // Закрытие модального окна при клике вне его
+            document.getElementById('urgentModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideUrgentModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
